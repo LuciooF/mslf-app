@@ -195,7 +195,7 @@ export default function AdminDashboard() {
                 <div>
                   <p style={{ fontWeight: "500", color: "#1f2937", marginBottom: "0.25rem" }}>Tarea completada</p>
                   <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>
-                    Juan Pérez completó "Limpieza de áreas comunes" - 100 puntos otorgados
+                    Juan Pérez completó &ldquo;Limpieza de áreas comunes&rdquo; - 100 puntos otorgados
                   </p>
                 </div>
                 <span style={{ fontSize: "0.875rem", color: "#9ca3af" }}>Hace 5 min</span>
