@@ -5,10 +5,11 @@ const prisma = new PrismaClient()
 
 export async function GET() {
   try {
-    // Use raw SQL since there's a mismatch between Prisma schema and DB schema
+    // Use raw SQL to get tenant users with their data
     const users = await prisma.$queryRaw`
-      SELECT id, email, name, "lastName", role, "pointsBalance", "createdAt"
+      SELECT id, email, name, "lastName", cedula, phone, role, "pointsBalance", "createdAt"
       FROM "User"
+      WHERE role = 'TENANT'
       ORDER BY "createdAt" DESC
     `
 

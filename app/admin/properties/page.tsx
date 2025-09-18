@@ -1,60 +1,39 @@
 "use client"
 
 import Link from "next/link"
+import { useEffect, useState } from "react"
+
+interface Property {
+  id: string
+  name: string
+  address: string
+  propertyType: string
+  totalRooms: number
+  managerName: string
+  createdAt: string
+}
 
 export default function PropertiesPage() {
-  const properties = [
-    {
-      id: 1,
-      name: "Propiedad Centro",
-      address: "18 de Julio 1234, Montevideo",
-      type: "Apartamento",
-      rooms: 12,
-      occupiedRooms: 10,
-      monthlyRent: 25000,
-      status: "Activa"
-    },
-    {
-      id: 2,
-      name: "Propiedad Pocitos",
-      address: "Bvar. España 567, Pocitos",
-      type: "Casa",
-      rooms: 8,
-      occupiedRooms: 8,
-      monthlyRent: 35000,
-      status: "Activa"
-    },
-    {
-      id: 3,
-      name: "Propiedad Cordón",
-      address: "Canelones 890, Cordón",
-      type: "Apartamento",
-      rooms: 15,
-      occupiedRooms: 12,
-      monthlyRent: 22000,
-      status: "Activa"
-    },
-    {
-      id: 4,
-      name: "Propiedad Punta Carretas",
-      address: "Ellauri 234, Punta Carretas",
-      type: "Casa",
-      rooms: 6,
-      occupiedRooms: 5,
-      monthlyRent: 40000,
-      status: "Mantenimiento"
-    },
-    {
-      id: 5,
-      name: "Propiedad Tres Cruces",
-      address: "Miguelete 456, Tres Cruces",
-      type: "Apartamento",
-      rooms: 10,
-      occupiedRooms: 7,
-      monthlyRent: 28000,
-      status: "Activa"
+  const [properties, setProperties] = useState<Property[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchProperties() {
+      try {
+        const response = await fetch('/api/properties')
+        const data = await response.json()
+        if (data.success) {
+          setProperties(data.properties)
+        }
+      } catch (error) {
+        console.error('Error fetching properties:', error)
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
+
+    fetchProperties()
+  }, [])
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#f8fafc" }}>
@@ -115,6 +94,13 @@ export default function PropertiesPage() {
           </Link>
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div style={{ textAlign: "center", padding: "2rem" }}>
+            <p style={{ color: "#6b7280" }}>Cargando propiedades...</p>
+          </div>
+        )}
+
         {/* Properties Grid */}
         <div style={{ display: "grid", gap: "1.5rem" }}>
           {properties.map((property) => (
@@ -134,7 +120,7 @@ export default function PropertiesPage() {
                     {property.name}
                   </h3>
                   <p style={{ color: "#6b7280", marginBottom: "0.25rem" }}>{property.address}</p>
-                  <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>{property.type}</p>
+                  <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>{property.propertyType}</p>
                 </div>
                 <div style={{ display: "flex", gap: "0.5rem" }}>
                   <span
@@ -143,38 +129,38 @@ export default function PropertiesPage() {
                       borderRadius: "999px",
                       fontSize: "0.875rem",
                       fontWeight: "500",
-                      backgroundColor: property.status === "Activa" ? "#dcfce7" : "#fef3c7",
-                      color: property.status === "Activa" ? "#166534" : "#92400e"
+                      backgroundColor: "#dcfce7",
+                      color: "#166534"
                     }}
                   >
-                    {property.status}
+                    Activa
                   </span>
                 </div>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "1rem", marginBottom: "1.5rem" }}>
                 <div>
-                  <p style={{ fontSize: "0.875rem", color: "#6b7280", marginBottom: "0.25rem" }}>Habitaciones</p>
+                  <p style={{ fontSize: "0.875rem", color: "#6b7280", marginBottom: "0.25rem" }}>Total Habitaciones</p>
                   <p style={{ fontSize: "1.125rem", fontWeight: "600", color: "#1f2937" }}>
-                    {property.occupiedRooms}/{property.rooms}
+                    {property.totalRooms}
                   </p>
                 </div>
                 <div>
-                  <p style={{ fontSize: "0.875rem", color: "#6b7280", marginBottom: "0.25rem" }}>Ocupación</p>
+                  <p style={{ fontSize: "0.875rem", color: "#6b7280", marginBottom: "0.25rem" }}>Administrador</p>
                   <p style={{ fontSize: "1.125rem", fontWeight: "600", color: "#1f2937" }}>
-                    {Math.round((property.occupiedRooms / property.rooms) * 100)}%
+                    {property.managerName}
                   </p>
                 </div>
                 <div>
-                  <p style={{ fontSize: "0.875rem", color: "#6b7280", marginBottom: "0.25rem" }}>Alquiler Mensual</p>
+                  <p style={{ fontSize: "0.875rem", color: "#6b7280", marginBottom: "0.25rem" }}>Fecha Creación</p>
                   <p style={{ fontSize: "1.125rem", fontWeight: "600", color: "#1f2937" }}>
-                    ${property.monthlyRent.toLocaleString('es-UY')}
+                    {new Date(property.createdAt).toLocaleDateString('es-UY')}
                   </p>
                 </div>
                 <div>
-                  <p style={{ fontSize: "0.875rem", color: "#6b7280", marginBottom: "0.25rem" }}>Ingresos Mensuales</p>
-                  <p style={{ fontSize: "1.125rem", fontWeight: "600", color: "#1f2937" }}>
-                    ${(property.monthlyRent * property.occupiedRooms).toLocaleString('es-UY')}
+                  <p style={{ fontSize: "0.875rem", color: "#6b7280", marginBottom: "0.25rem" }}>Estado</p>
+                  <p style={{ fontSize: "1.125rem", fontWeight: "600", color: "#059669" }}>
+                    Operativa
                   </p>
                 </div>
               </div>

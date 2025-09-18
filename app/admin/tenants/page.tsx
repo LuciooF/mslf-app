@@ -1,80 +1,41 @@
 "use client"
 
 import Link from "next/link"
+import { useEffect, useState } from "react"
+
+interface Tenant {
+  id: string
+  name: string
+  lastName: string | null
+  email: string
+  cedula: string | null
+  phone: string | null
+  pointsBalance: number
+  createdAt: string
+}
 
 export default function TenantsPage() {
-  const tenants = [
-    {
-      id: 1,
-      name: "Juan Pérez",
-      email: "juan.perez@email.com",
-      cedula: "12345678",
-      phone: "099123456",
-      property: "Propiedad Centro",
-      room: "Habitación 3",
-      rentAmount: 25000,
-      pointsBalance: 450,
-      status: "Activo",
-      joinDate: "2024-01-15",
-      tasksCompleted: 12
-    },
-    {
-      id: 2,
-      name: "María González",
-      email: "maria.gonzalez@email.com",
-      cedula: "87654321",
-      phone: "098765432",
-      property: "Propiedad Pocitos",
-      room: "Habitación 1",
-      rentAmount: 35000,
-      pointsBalance: 320,
-      status: "Activo",
-      joinDate: "2024-02-01",
-      tasksCompleted: 8
-    },
-    {
-      id: 3,
-      name: "Carlos Rodríguez",
-      email: "carlos.rodriguez@email.com",
-      cedula: "11223344",
-      phone: "091234567",
-      property: "Propiedad Cordón",
-      room: "Habitación 7",
-      rentAmount: 22000,
-      pointsBalance: 180,
-      status: "Activo",
-      joinDate: "2023-12-10",
-      tasksCompleted: 15
-    },
-    {
-      id: 4,
-      name: "Ana Silva",
-      email: "ana.silva@email.com",
-      cedula: "55667788",
-      phone: "092345678",
-      property: "Propiedad Punta Carretas",
-      room: "Habitación 2",
-      rentAmount: 40000,
-      pointsBalance: 590,
-      status: "Activo",
-      joinDate: "2024-01-20",
-      tasksCompleted: 18
-    },
-    {
-      id: 5,
-      name: "Pedro Martínez",
-      email: "pedro.martinez@email.com",
-      cedula: "99887766",
-      phone: "093456789",
-      property: "Propiedad Tres Cruces",
-      room: "Habitación 5",
-      rentAmount: 28000,
-      pointsBalance: 75,
-      status: "Inactivo",
-      joinDate: "2023-11-05",
-      tasksCompleted: 3
+  const [tenants, setTenants] = useState<Tenant[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchTenants() {
+      try {
+        const response = await fetch('/api/users')
+        const data = await response.json()
+        if (data.success) {
+          setTenants(data.users)
+        }
+      } catch (error) {
+        console.error('Error fetching tenants:', error)
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
+
+    fetchTenants()
+  }, [])
+
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#f8fafc" }}>
@@ -135,6 +96,13 @@ export default function TenantsPage() {
           </Link>
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div style={{ textAlign: "center", padding: "2rem" }}>
+            <p style={{ color: "#6b7280" }}>Cargando inquilinos...</p>
+          </div>
+        )}
+
         {/* Tenants Grid */}
         <div style={{ display: "grid", gap: "1.5rem" }}>
           {tenants.map((tenant) => (
@@ -151,11 +119,11 @@ export default function TenantsPage() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
                 <div>
                   <h3 style={{ fontSize: "1.25rem", fontWeight: "bold", color: "#1f2937", marginBottom: "0.5rem" }}>
-                    {tenant.name}
+                    {tenant.name} {tenant.lastName}
                   </h3>
                   <p style={{ color: "#6b7280", marginBottom: "0.25rem" }}>{tenant.email}</p>
-                  <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>Cédula: {tenant.cedula}</p>
-                  <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>Tel: {tenant.phone}</p>
+                  <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>Cédula: {tenant.cedula || 'No especificada'}</p>
+                  <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>Tel: {tenant.phone || 'No especificado'}</p>
                 </div>
                 <div style={{ display: "flex", gap: "0.5rem" }}>
                   <span
@@ -164,27 +132,16 @@ export default function TenantsPage() {
                       borderRadius: "999px",
                       fontSize: "0.875rem",
                       fontWeight: "500",
-                      backgroundColor: tenant.status === "Activo" ? "#dcfce7" : "#fee2e2",
-                      color: tenant.status === "Activo" ? "#166534" : "#dc2626"
+                      backgroundColor: "#dcfce7",
+                      color: "#166534"
                     }}
                   >
-                    {tenant.status}
+                    Activo
                   </span>
                 </div>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "1rem", marginBottom: "1rem" }}>
-                <div>
-                  <p style={{ fontSize: "0.875rem", color: "#6b7280", marginBottom: "0.25rem" }}>Propiedad</p>
-                  <p style={{ fontSize: "1rem", fontWeight: "500", color: "#1f2937" }}>{tenant.property}</p>
-                  <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>{tenant.room}</p>
-                </div>
-                <div>
-                  <p style={{ fontSize: "0.875rem", color: "#6b7280", marginBottom: "0.25rem" }}>Alquiler Mensual</p>
-                  <p style={{ fontSize: "1.125rem", fontWeight: "600", color: "#1f2937" }}>
-                    ${tenant.rentAmount.toLocaleString('es-UY')}
-                  </p>
-                </div>
                 <div>
                   <p style={{ fontSize: "0.875rem", color: "#6b7280", marginBottom: "0.25rem" }}>Puntos Acumulados</p>
                   <p style={{ fontSize: "1.125rem", fontWeight: "600", color: "#2563eb" }}>
@@ -192,9 +149,21 @@ export default function TenantsPage() {
                   </p>
                 </div>
                 <div>
-                  <p style={{ fontSize: "0.875rem", color: "#6b7280", marginBottom: "0.25rem" }}>Tareas Completadas</p>
+                  <p style={{ fontSize: "0.875rem", color: "#6b7280", marginBottom: "0.25rem" }}>Fecha Registro</p>
+                  <p style={{ fontSize: "1.125rem", fontWeight: "600", color: "#1f2937" }}>
+                    {new Date(tenant.createdAt).toLocaleDateString('es-UY')}
+                  </p>
+                </div>
+                <div>
+                  <p style={{ fontSize: "0.875rem", color: "#6b7280", marginBottom: "0.25rem" }}>Estado</p>
                   <p style={{ fontSize: "1.125rem", fontWeight: "600", color: "#059669" }}>
-                    {tenant.tasksCompleted}
+                    Registrado
+                  </p>
+                </div>
+                <div>
+                  <p style={{ fontSize: "0.875rem", color: "#6b7280", marginBottom: "0.25rem" }}>Descuento Disponible</p>
+                  <p style={{ fontSize: "1.125rem", fontWeight: "600", color: "#dc2626" }}>
+                    ${Math.round(tenant.pointsBalance * 0.8).toLocaleString('es-UY')}
                   </p>
                 </div>
               </div>
@@ -202,10 +171,10 @@ export default function TenantsPage() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "1rem", borderTop: "1px solid #f3f4f6" }}>
                 <div>
                   <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>
-                    Miembro desde: {new Date(tenant.joinDate).toLocaleDateString('es-UY')}
+                    Miembro desde: {new Date(tenant.createdAt).toLocaleDateString('es-UY')}
                   </p>
-                  <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>
-                    Descuento estimado: ${Math.round(tenant.pointsBalance * 0.8).toLocaleString('es-UY')}
+                  <p style={{ fontSize: "0.875rem", color: "#059669" }}>
+                    💰 Descuento disponible: ${Math.round(tenant.pointsBalance * 0.8).toLocaleString('es-UY')}
                   </p>
                 </div>
                 <div style={{ display: "flex", gap: "0.75rem" }}>
