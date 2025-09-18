@@ -1,0 +1,332 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  TENANT
+  MANAGER
+}
+
+enum TaskStatus {
+  PENDIENTE
+  ASIGNADA
+  EN_PROGRESO
+  EN_REVISION
+  COMPLETADA
+  RECHAZADA
+}
+
+enum TaskPriority {
+  BAJA
+  MEDIA
+  ALTA
+  URGENTE
+}
+
+enum TaskCategory {
+  LIMPIEZA
+  MANTENIMIENTO
+  REPARACION
+  JARDINERIA
+  ADMINISTRATIVO
+  EMERGENCIA
+  COMUNIDAD
+}
+
+enum VerificationStatus {
+  PENDIENTE
+  APROBADA
+  RECHAZADA
+  REQUIERE_REVISION
+}
+
+enum PaymentStatus {
+  PENDIENTE
+  PAGADO
+  PARCIAL
+  VENCIDO
+}
+
+model User {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  password          String
+  nombre            String
+  apellido          String
+  telefono          String?
+  cedula            String   @unique
+  role              UserRole @default(TENANT)
+  activo            Boolean  @default(true)
+  emailVerificado   Boolean  @default(false)
+  fechaCreacion     DateTime @default(now())
+  ultimoAcceso      DateTime?
+
+  // Relations
+  tenancies         Tenancy[]
+  tasksCreated      Task[]   @relation("TaskCreator")
+  tasksAssigned     Task[]   @relation("TaskAssignee")
+  taskVerifications TaskVerification[]
+  pointsHistory     PointTransaction[]
+  notifications     Notification[]
+  managedProperties Property[] @relation("PropertyManager")
+
+  @@index([email])
+  @@index([cedula])
+}
+
+model Property {
+  id                    String   @id @default(cuid())
+  nombre                String
+  direccion             String
+  ciudad                String
+  departamento          String
+  codigoPostal          String?
+  descripcion           String?
+  cantidadHabitaciones  Int
+  cantidadBanos         Int
+  areaConstruida        Float?
+  amenidades            String[] // JSON array of amenities
+  activa                Boolean  @default(true)
+  fechaCreacion         DateTime @default(now())
+
+  // Configuration
+  configuracion         PropertyConfig?
+
+  // Relations
+  manager               User?    @relation("PropertyManager", fields: [managerId], references: [id])
+  managerId             String?
+  tenancies             Tenancy[]
+  tasks                 Task[]
+  rentPayments          RentPayment[]
+
+  @@index([managerId])
+  @@index([activa])
+}
+
+model PropertyConfig {
+  id                     String   @id @default(cuid())
+  propertyId             String   @unique
+  property               Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  // Puntos y configuración de reducción
+  puntosPorPeso          Float    @default(10)    // 10 puntos = 1 peso uruguayo
+  maxReduccionPorcentaje Float    @default(30)    // Máximo 30% de reducción
+  maxPuntosMensuales     Int      @default(5000)  // Máximo 5000 puntos por mes
+
+  // Valores de puntos por categoría de tarea
+  puntosLimpiezaBasica   Int      @default(50)
+  puntosLimpiezaProfunda Int      @default(200)
+  puntosMantenimiento    Int      @default(150)
+  puntosReparacion       Int      @default(300)
+  puntosJardineria       Int      @default(100)
+  puntosAdministrativo   Int      @default(75)
+  puntosEmergencia       Int      @default(500)
+  puntosComunidad        Int      @default(100)
+
+  // Bonificaciones
+  bonusConsistencia      Float    @default(1.2)   // 20% extra por consistencia
+  bonusCalidad           Float    @default(1.5)   // 50% extra por excelente calidad
+  bonusRapidez           Float    @default(1.3)   // 30% extra por completar rápido
+
+  // Configuración de tareas
+  tiempoMaximoRevision   Int      @default(48)    // Horas para revisar una tarea
+  requiereVerificacion   Boolean  @default(true)
+  verificacionPorPares   Boolean  @default(false) // Otros inquilinos pueden verificar
+
+  fechaActualizacion     DateTime @updatedAt
+}
+
+model Tenancy {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id])
+  propertyId        String
+  property          Property  @relation(fields: [propertyId], references: [id])
+
+  habitacion        String?
+  fechaInicio       DateTime
+  fechaFin          DateTime?
+  rentaMensual      Float
+  deposito          Float
+  activo            Boolean   @default(true)
+
+  // Relations
+  rentPayments      RentPayment[]
+  pointTransactions PointTransaction[]
+
+  fechaCreacion     DateTime  @default(now())
+
+  @@unique([userId, propertyId, activo])
+  @@index([userId])
+  @@index([propertyId])
+  @@index([activo])
+}
+
+model Task {
+  id                String       @id @default(cuid())
+  titulo            String
+  descripcion       String
+  categoria         TaskCategory
+  prioridad         TaskPriority @default(MEDIA)
+  estado            TaskStatus   @default(PENDIENTE)
+
+  // Puntos y tiempo
+  puntosBase        Int
+  puntosFinales     Int?
+  bonificacion      Float        @default(1)
+  tiempoEstimado    Int?         // En minutos
+  tiempoReal        Int?         // En minutos
+
+  // Fechas
+  fechaCreacion     DateTime     @default(now())
+  fechaAsignacion   DateTime?
+  fechaInicio       DateTime?
+  fechaCompletado   DateTime?
+  fechaLimite       DateTime?
+
+  // Recurrencia
+  esRecurrente      Boolean      @default(false)
+  frecuenciaDias    Int?         // Cada cuántos días se repite
+  proximaOcurrencia DateTime?
+
+  // Relations
+  propertyId        String
+  property          Property     @relation(fields: [propertyId], references: [id])
+  createdById       String
+  createdBy         User         @relation("TaskCreator", fields: [createdById], references: [id])
+  assignedToId      String?
+  assignedTo        User?        @relation("TaskAssignee", fields: [assignedToId], references: [id])
+
+  verifications     TaskVerification[]
+  evidencia         TaskEvidence[]
+  pointTransaction  PointTransaction?
+
+  @@index([propertyId])
+  @@index([createdById])
+  @@index([assignedToId])
+  @@index([estado])
+  @@index([categoria])
+}
+
+model TaskVerification {
+  id                String             @id @default(cuid())
+  taskId            String
+  task              Task               @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  verifiedById      String
+  verifiedBy        User               @relation(fields: [verifiedById], references: [id])
+
+  estado            VerificationStatus @default(PENDIENTE)
+  comentarios       String?
+  calificacion      Int?               // 1-5 estrellas
+
+  fechaVerificacion DateTime           @default(now())
+
+  @@index([taskId])
+  @@index([verifiedById])
+}
+
+model TaskEvidence {
+  id          String   @id @default(cuid())
+  taskId      String
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  tipo        String   // 'imagen', 'video', 'documento'
+  url         String
+  descripcion String?
+
+  fechaCarga  DateTime @default(now())
+
+  @@index([taskId])
+}
+
+model PointTransaction {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  tenancyId       String
+  tenancy         Tenancy  @relation(fields: [tenancyId], references: [id])
+
+  puntos          Int
+  tipo            String   // 'ganado', 'usado', 'expirado', 'ajuste'
+  descripcion     String
+
+  // Si es por tarea
+  taskId          String?  @unique
+  task            Task?    @relation(fields: [taskId], references: [id])
+
+  // Si es usado para pago
+  rentPaymentId   String?
+  rentPayment     RentPayment? @relation(fields: [rentPaymentId], references: [id])
+
+  fechaTransaccion DateTime @default(now())
+  fechaExpiracion DateTime? // Los puntos pueden expirar
+
+  @@index([userId])
+  @@index([tenancyId])
+  @@index([tipo])
+}
+
+model RentPayment {
+  id                String        @id @default(cuid())
+  tenancyId         String
+  tenancy           Tenancy       @relation(fields: [tenancyId], references: [id])
+  propertyId        String
+  property          Property      @relation(fields: [propertyId], references: [id])
+
+  mes               Int
+  año               Int
+  montoBase         Float
+  puntosUsados      Int           @default(0)
+  descuentoPuntos   Float         @default(0)
+  montoFinal        Float
+
+  estado            PaymentStatus @default(PENDIENTE)
+  metodoPago        String?       // 'transferencia', 'efectivo', 'mercadopago'
+  comprobante       String?       // URL del comprobante
+  notas             String?
+
+  fechaVencimiento  DateTime
+  fechaPago         DateTime?
+  fechaCreacion     DateTime      @default(now())
+
+  // Relations
+  pointTransactions PointTransaction[]
+
+  @@unique([tenancyId, mes, año])
+  @@index([tenancyId])
+  @@index([propertyId])
+  @@index([estado])
+}
+
+model Notification {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+
+  tipo          String   // 'tarea', 'pago', 'puntos', 'sistema'
+  titulo        String
+  mensaje       String
+  enlace        String?  // URL para navegar
+
+  leida         Boolean  @default(false)
+  fechaCreacion DateTime @default(now())
+  fechaLectura  DateTime?
+
+  @@index([userId])
+  @@index([leida])
+}
+
+model SystemConfig {
+  id            String   @id @default(cuid())
+  clave         String   @unique
+  valor         String
+  descripcion   String?
+  fechaCreacion DateTime @default(now())
+  fechaActualizacion DateTime @updatedAt
+}
